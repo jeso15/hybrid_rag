@@ -24,7 +24,7 @@ sentence-transformers>=3.4.0      # includes CrossEncoder for reranking
 rank-bm25>=0.2.2
 
 # --- PDF Extraction ---
-PyMuPDF>=1.25.0                   # imported as 'fitz'
+pdfplumber>=0.11.0                # PDF text and table extraction
 
 # --- Configuration ---
 python-dotenv>=1.0.1
