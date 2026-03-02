@@ -1,0 +1,37 @@
+# =============================================================
+# Hybrid RAG - Python Dependencies
+# =============================================================
+# Install: pip install -r requirements.txt
+# Recommended: use a virtual environment first
+#   python3 -m venv .venv && source .venv/bin/activate
+# =============================================================
+
+# --- Web Framework ---
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+python-multipart>=0.0.18          # file upload support for FastAPI
+
+# --- LLM ---
+openai>=1.60.0
+
+# --- Vector Store ---
+chromadb>=0.6.3
+
+# --- Embeddings & Reranking ---
+sentence-transformers>=3.4.0      # includes CrossEncoder for reranking
+
+# --- Sparse Retrieval ---
+rank-bm25>=0.2.2
+
+# --- PDF Extraction ---
+PyMuPDF>=1.25.0                   # imported as 'fitz'
+
+# --- Configuration ---
+python-dotenv>=1.0.1
+
+# --- Testing ---
+pytest>=8.3.0
+httpx>=0.28.0                     # async test client for FastAPI
+
+# --- Utilities ---
+numpy>=1.26.0
