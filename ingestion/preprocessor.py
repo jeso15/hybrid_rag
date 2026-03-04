@@ -24,3 +24,21 @@ NOTES:
   for modern retrieval systems
 - This module is called after chunker.py in the ingestion pipeline
 """
+
+
+def clean_text(text: str) -> str:
+    """ clean a string of text by collapsing whitespace and removing special characters."""
+    import re
+    import unicodedata
+
+    # Normalize unicode characters
+    text = unicodedata.normalize("NFKD", text)
+
+    # Remove special characters (except basic punctuation)
+    text = re.sub(r"[^\w\s.,;:!?()\-]", " ", text)
+
+    # Collapse multiple whitespace/newlines into single spaces
+    text = re.sub(r"\s+", " ", text)
+
+    # Strip leading/trailing whitespace
+    return text.strip()
