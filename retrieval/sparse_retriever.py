@@ -30,3 +30,38 @@ NOTES:
   nltk.word_tokenize() but the simple split works well enough for most cases
 - The SparseRetriever is used by hybrid_retriever.py alongside the dense retriever
 """
+
+from rank_bm25 import BM25Okapi
+from config import TOP_K_SPARSE
+import numpy as np
+
+class SparseRetriever:
+    """Implements BM25 retrieval over the chunk corpus."""
+
+    def __init__(self):
+        self.bm25 = None
+        self.documents = [] #store the original chunk dicts
+
+    def index(self, chunks: list[dict]):
+        """Build BM25 index from chunk texts."""
+        if not chunks:
+            return
+        self.documents = chunks
+        tokenized_corpus = [chunk["text"].lower().split() for chunk in chunks]
+        self.bm25 = BM25Okapi(tokenized_corpus)
+
+    def retrieve(self, query: str, top_k: int = TOP_K_SPARSE) -> list[dict]:
+        """Return top_k chunks matching the query."""
+        if self.bm25 is None or not query:
+            return []
+        tokenized_query = query.lower().split()
+        scores = self.bm25.get_scores(tokenized_query)
+        top_indices = np.argsort(scores)[::-1][:top_k]
+        return [
+            {
+                "text": self.documents[i]["text"],
+                "score": float(scores[i]),
+                "metadata": self.documents[i].get("metadata", {})
+            }
+            for i in top_indices
+        ]

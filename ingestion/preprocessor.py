@@ -42,3 +42,16 @@ def clean_text(text: str) -> str:
 
     # Strip leading/trailing whitespace
     return text.strip()
+
+def preprocess_chunks(chunks: list[dict]) -> list[dict]:
+    """preprocess a list of chunk dicts by cleaning the text and filtering out short chunks."""
+    cleaned_chunks = []
+    for chunk in chunks:
+        cleaned_text = clean_text(chunk["text"])
+        if len(cleaned_text) >= 20:  # Filter out chunks that are too short
+            cleaned_chunks.append({
+                "text": cleaned_text,
+                "chunk_id": chunk["chunk_id"],
+                "metadata": chunk["metadata"]
+            })
+    return cleaned_chunks

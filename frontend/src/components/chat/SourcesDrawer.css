@@ -1,0 +1,56 @@
+.sources-drawer {
+  margin-top: 8px;
+}
+
+.sources-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.sources-toggle:hover {
+  color: var(--text-secondary);
+}
+
+.sources-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.source-item {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.source-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.source-file {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.source-score {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.source-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}

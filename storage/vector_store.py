@@ -1,55 +1,67 @@
-"""
-Vector store module.
+"""ChromaDB-backed vector store."""
 
-HOW TO IMPLEMENT:
-=================
+from __future__ import annotations
 
-Library: chromadb
-Config values: CHROMA_PERSIST_DIR, CHROMA_COLLECTION_NAME, EMBEDDING_MODEL_NAME from config.py
+from typing import Any, Dict, List
 
-1. Define a class: VectorStore
-   - __init__(self):
-     - Create a persistent ChromaDB client:
-       self.client = chromadb.PersistentClient(path=config.CHROMA_PERSIST_DIR)
-     - Set up the embedding function:
-       from chromadb.utils import embedding_functions
-       self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-           model_name=config.EMBEDDING_MODEL_NAME
-       )
-     - Get or create the collection:
-       self.collection = self.client.get_or_create_collection(
-           name=config.CHROMA_COLLECTION_NAME,
-           embedding_function=self.embedding_fn,
-           metadata={"hnsw:space": "cosine"}  # use cosine similarity
-       )
+import chromadb
+from chromadb.utils import embedding_functions
 
-   - add_documents(self, chunks: list[dict]):
-     - Extract texts, ids, and metadatas from chunks
-     - Call self.collection.add(
-           documents=[c["text"] for c in chunks],
-           ids=[str(c["chunk_id"]) for c in chunks],
-           metadatas=[c.get("metadata", {}) for c in chunks]
-       )
-     - ChromaDB computes embeddings automatically via the embedding_function
+import config
 
-   - query(self, query_text: str, n_results: int = 10) -> list[dict]:
-     - Call results = self.collection.query(
-           query_texts=[query_text],
-           n_results=n_results
-       )
-     - Parse results into list of dicts:
-       [{"text": doc, "score": dist, "metadata": meta}, ...]
-     - Note: results["distances"][0] contains distance values;
-       for cosine space, similarity = 1 - distance
 
-   - get_count(self) -> int:
-     - Return self.collection.count()
+class VectorStore:
+    """Thin wrapper around a persistent ChromaDB collection."""
 
-NOTES:
-- ChromaDB handles embedding computation internally when an embedding_function
-  is provided — no need to embed manually
-- PersistentClient stores data at CHROMA_PERSIST_DIR (./chroma_data by default)
-- The collection persists across restarts — data is not lost when the server stops
-- "hnsw:space": "cosine" ensures cosine similarity is used (not L2 distance)
-- This module is used by dense_retriever.py for querying and by app.py for indexing
-"""
+    def __init__(self, collection_name: str = config.CHROMA_COLLECTION_NAME) -> None:
+        # Persist embeddings on disk so they survive restarts
+        self.client = chromadb.PersistentClient(path=config.CHROMA_PERSIST_DIR)
+
+        # Embedding model used by Chroma to compute vectors
+        self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name=config.EMBEDDING_MODEL_NAME
+        )
+
+        # Main collection (creates if missing); cosine similarity space
+        self.collection = self.client.get_or_create_collection(
+            name=collection_name,
+            embedding_function=self.embedding_fn,
+            metadata={"hnsw:space": "cosine"},
+        )
+
+    def add_documents(self, chunks: List[Dict[str, Any]]) -> None:
+        """Add chunk dicts; Chroma computes embeddings automatically."""
+        if not chunks:
+            return
+        self.collection.add(
+            documents=[c["text"] for c in chunks],
+            ids=[str(c["chunk_id"]) for c in chunks],
+            metadatas=[c.get("metadata", {}) for c in chunks],
+        )
+
+    def query(self, query_text: str, n_results: int = 10) -> List[Dict[str, Any]]:
+        """Return top results with similarity scores and metadata."""
+        n_results = min(n_results, self.collection.count())
+        if n_results == 0:
+            return []
+        results = self.collection.query(query_texts=[query_text], n_results=n_results)
+        docs = results.get("documents", [[]])[0]
+        distances = results.get("distances", [[]])[0]
+        metadatas = results.get("metadatas", [[]])[0]
+
+        return [
+            {
+                "text": doc,
+                "score": 1 - dist,  # cosine distance -> similarity
+                "metadata": meta or {},
+            }
+            for doc, dist, meta in zip(docs, distances, metadatas)
+        ]
+
+    def get_count(self) -> int:
+        """Number of stored documents."""
+        return self.collection.count()
+
+    def delete_collection(self) -> None:
+        """Delete the underlying ChromaDB collection."""
+        self.client.delete_collection(self.collection.name)

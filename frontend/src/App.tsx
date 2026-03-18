@@ -1,35 +1,52 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from 'react';
+import { useThreads } from './hooks/useThreads';
+import { Sidebar } from './components/sidebar/Sidebar';
+import { ChatPanel } from './components/chat/ChatPanel';
+import { EmptyState } from './components/chat/EmptyState';
+import type { Message } from './types';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const { threads, activeThreadId, selectThread, createThread, deleteThread, updateTitle } = useThreads();
+  const [fileRefreshTrigger, setFileRefreshTrigger] = useState(0);
+
+  // Per-thread message history — survives tab switching
+  const [messagesByThread, setMessagesByThread] = useState<Record<string, Message[]>>({});
+
+  function setMessages(threadId: string, updater: (prev: Message[]) => Message[]) {
+    setMessagesByThread((prev) => ({
+      ...prev,
+      [threadId]: updater(prev[threadId] ?? []),
+    }));
+  }
+
+  const activeMessages = activeThreadId ? (messagesByThread[activeThreadId] ?? []) : [];
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div className="app-layout">
+      <Sidebar
+        threads={threads}
+        activeThreadId={activeThreadId}
+        fileRefreshTrigger={fileRefreshTrigger}
+        onCreate={createThread}
+        onSelect={selectThread}
+        onDelete={deleteThread}
+      />
 
-export default App
+      <main className="app-main">
+        {activeThreadId ? (
+          <ChatPanel
+            key={activeThreadId}
+            threadId={activeThreadId}
+            messages={activeMessages}
+            setMessages={setMessages}
+            onTitleUpdate={updateTitle}
+            onFileUploaded={setFileRefreshTrigger}
+          />
+        ) : (
+          <EmptyState onCreate={createThread} />
+        )}
+      </main>
+    </div>
+  );
+}
